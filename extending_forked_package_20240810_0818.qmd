@@ -1,0 +1,160 @@
+---
+title: "Extending a Forked Package: Setup and Best Practices"
+format: html
+---
+
+## Objective
+
+Create an extended package based on a forked repository while maintaining updatability and clear separation of original and new code.
+
+## Key Components
+
+1. **Repository Structure**: 
+   - New repo for extended package
+   - Forked repo as submodule
+   - Original repo as remote in submodule
+
+2. **Package Layout**: 
+   - src-layout (PEP 517/518 compliant)
+   - Clear separation of original and extended code
+
+3. **Dependency Management**: 
+   - Poetry for package management
+   - Git submodule for original package
+
+4. **Extension Strategy**:
+   - Adapters, wrappers, and extensions in separate directories
+
+## Setup Process
+
+The following shell script automates the setup process:
+
+```bash
+#!/bin/bash
+
+# Set variables
+ORIGINAL_REPO="frdel/agent-zero"
+FORKED_REPO="jankowtf/agent-zero"
+NEW_REPO_NAME="macher"
+GITHUB_USERNAME="jankowtf"
+
+# Create new repository
+gh repo create $NEW_REPO_NAME --public --clone
+
+# Navigate to the new repository
+cd $NEW_REPO_NAME
+
+# Initialize poetry project
+poetry init -n
+
+# Set up src layout
+mkdir -p src/$NEW_REPO_NAME/{adapters,extensions,wrappers}
+touch src/$NEW_REPO_NAME/__init__.py
+
+# Add forked repo as submodule
+git submodule add https://github.com/$FORKED_REPO.git src/original_package
+
+# Add original repo as remote to the submodule
+cd src/original_package
+git remote add upstream https://github.com/$ORIGINAL_REPO.git
+cd ../..
+
+# Create test directory
+mkdir -p tests
+touch tests/__init__.py
+
+# Create docs directory
+mkdir docs
+echo "# Extended Package Documentation" > docs/index.md
+
+# Update pyproject.toml
+cat << EOF >> pyproject.toml
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.packages]
+include = [
+    { include = "$NEW_REPO_NAME", from = "src" },
+    { include = "original_package", from = "src" },
+]
+EOF
+
+# Create README.md
+echo "# $NEW_REPO_NAME" > README.md
+echo "Extended functionality for $ORIGINAL_REPO" >> README.md
+
+# Create .gitignore
+cat << EOF > .gitignore
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+EOF
+
+# Initial commit
+git add .
+git commit -m "Initial project structure"
+
+# Push to GitHub
+git push -u origin main
+
+echo "Repository setup complete. Navigate to $NEW_REPO_NAME to start development."
+```
+
+To use this script:
+
+1. Save it as `setup_extended_repo.sh`
+2. Make it executable: `chmod +x setup_extended_repo.sh`
+3. Ensure you have the GitHub CLI (`gh`) installed and authenticated
+4. Update the variables at the top of the script with your specific details
+5. Run the script: `./setup_extended_repo.sh`
+
+## Project Structure
+
+After running the script, you'll have the following structure:
+
+```
+extended_package/
+├── pyproject.toml
+├── README.md
+├── .gitignore
+├── src/
+│   ├── extended_package/
+│   │   ├── adapters/
+│   │   ├── extensions/
+│   │   └── wrappers/
+│   └── original_package/  # submodule (forked repo)
+├── tests/
+└── docs/
+```
+
+## Benefits
+
+- Clear separation of original and extended code
+- Easy updates from original repo via forked submodule
+- Maintainable structure for future development
+- Adherence to Python packaging best practices
+
+## Update Process
+
+To update the original package:
+
+1. Navigate to the submodule directory
+2. Fetch and merge from the upstream (original) repo
+3. Push changes to your fork
+4. Update the submodule reference in the main project
+
+## Contribution Workflow
+
+- For original package: Contribute via pull requests to the original repo
+- For extensions: Develop in the new repo using normal workflow
+
+This setup allows for clear extension of the original package while maintaining the ability to easily incorporate updates and contribute back to the original project.
+```
+
+This Quarto document now includes the complete shell script, making it a self-contained reference for setting up and managing an extended package based on a forked repository.

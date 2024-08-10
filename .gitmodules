@@ -1,0 +1,3 @@
+[submodule "src/original_package"]
+	path = src/original_package
+	url = https://github.com/jankowtf/agent-zero.git
